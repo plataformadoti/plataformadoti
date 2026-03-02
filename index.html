@@ -1,89 +1,151 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gerador de Link Afiliado</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <section class="affiliate-container">
-    <h1>Gerar link afiliado</h1>
-    <p class="subtitle">
-      Cole o link do produto do Mercado Livre e gere o link para compartilhar.
-    </p>
+  <main class="page">
+    <section class="card">
+      <header class="card__header">
+        <div class="badge">Ferramenta</div>
+        <h1 class="title">Gerador de Link Afiliado</h1>
+        <p class="subtitle">
+          Cole o link do produto do Mercado Livre e gere um link pronto para compartilhar.
+        </p>
+      </header>
 
-    <label for="mlLink">Link do produto</label>
-    <input
-      id="mlLink"
-      type="url"
-      placeholder="https://www.mercadolivre.com.br/..."
-      required
-    />
+      <div class="form">
+        <label class="label" for="mlLink">Link do produto</label>
 
-    <button id="btnGerar">Gerar</button>
+        <div class="input-wrap">
+          <input
+            id="mlLink"
+            class="input"
+            type="url"
+            placeholder="https://www.mercadolivre.com.br/..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
 
-    <div id="status" class="status"></div>
+        <div class="actions">
+          <button id="btnGerar" class="btn btn--primary">
+            <span class="btn__text">Gerar link</span>
+            <span class="btn__spinner" aria-hidden="true"></span>
+          </button>
 
-    <div id="resultBox" class="result-box">
-      <label for="outLink">Link gerado</label>
-      <input id="outLink" readonly />
-      <button id="btnCopiar">Copiar</button>
-    </div>
-  </section>
+          <button id="btnLimpar" class="btn btn--ghost" type="button">
+            Limpar
+          </button>
+        </div>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+
+        <div id="resultBox" class="result">
+          <div class="result__header">
+            <h2 class="result__title">Link gerado</h2>
+            <p class="result__hint">Você pode copiar e enviar para quem solicitou.</p>
+          </div>
+
+          <div class="result__body">
+            <input id="outLink" class="input input--readonly" readonly />
+            <button id="btnCopiar" class="btn btn--secondary" type="button">
+              Copiar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="card__footer">
+        <p class="footer-text">
+          Dica: se der erro, o login pode ter expirado no servidor. Nesse caso, atualize o cookie.
+        </p>
+      </footer>
+    </section>
+  </main>
 
   <script>
     const API_URL = "https://api.plataformadoti.com.br/create";
 
     const mlLink = document.getElementById("mlLink");
     const btnGerar = document.getElementById("btnGerar");
-    const status = document.getElementById("status");
+    const btnLimpar = document.getElementById("btnLimpar");
+    const statusEl = document.getElementById("status");
     const resultBox = document.getElementById("resultBox");
     const outLink = document.getElementById("outLink");
     const btnCopiar = document.getElementById("btnCopiar");
+
+    const setStatus = (msg, type = "info") => {
+      statusEl.className = `status status--${type}`;
+      statusEl.textContent = msg || "";
+    };
+
+    const setLoading = (isLoading) => {
+      btnGerar.disabled = isLoading;
+      btnGerar.classList.toggle("is-loading", isLoading);
+    };
+
+    btnLimpar.addEventListener("click", () => {
+      mlLink.value = "";
+      outLink.value = "";
+      resultBox.style.display = "none";
+      setStatus("");
+      mlLink.focus();
+    });
 
     btnGerar.addEventListener("click", async () => {
       const link = (mlLink.value || "").trim();
 
       resultBox.style.display = "none";
-      status.textContent = "Gerando...";
+      outLink.value = "";
+      setStatus("");
 
       if (!link.startsWith("http")) {
-        status.textContent = "Informe um link válido.";
+        setStatus("Informe um link válido do Mercado Livre.", "error");
         return;
       }
 
       try {
+        setLoading(true);
+        setStatus("Gerando link...", "info");
+
         const response = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ link })
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          status.textContent = data.error || "Erro ao gerar link.";
+          setStatus(data.error || "Erro ao gerar link.", "error");
           return;
         }
 
         outLink.value = data.link_afiliado;
         resultBox.style.display = "block";
-        status.textContent = "Link gerado com sucesso.";
-
-      } catch (error) {
-        status.textContent = "Falha ao conectar com o servidor.";
+        setStatus("Link gerado com sucesso.", "success");
+      } catch (e) {
+        setStatus("Falha ao conectar com o servidor.", "error");
+      } finally {
+        setLoading(false);
       }
     });
 
     btnCopiar.addEventListener("click", async () => {
+      if (!outLink.value) return;
+
       try {
         await navigator.clipboard.writeText(outLink.value);
-        status.textContent = "Link copiado.";
+        setStatus("Link copiado.", "success");
       } catch {
         outLink.select();
         document.execCommand("copy");
-        status.textContent = "Link copiado.";
+        setStatus("Link copiado.", "success");
       }
     });
   </script>
