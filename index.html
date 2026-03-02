@@ -12,7 +12,7 @@
     <section class="card">
       <header class="card__header">
         <div class="badge">Plataforma do TI</div>
-        <h1 class="title">GERADOR DE LINK AFILIADO</h1>
+        <h1 class="title">GERADOR DE LINK DE AFILIADO</h1>
         <p class="subtitle">
           Cole o link do produto do Mercado Livre e gere um link pronto para compartilhar.
         </p>
@@ -20,7 +20,6 @@
 
       <div class="form">
         <label class="label" for="mlLink">Link do produto</label>
-
         <div class="input-wrap">
           <input
             id="mlLink"
@@ -33,7 +32,7 @@
         </div>
 
         <div class="actions">
-          <button id="btnGerar" class="btn btn--primary">
+          <button id="btnGerar" class="btn btn--primary" type="button">
             <span class="btn__text">Gerar link</span>
             <span class="btn__spinner" aria-hidden="true"></span>
           </button>
@@ -48,7 +47,7 @@
         <div id="resultBox" class="result">
           <div class="result__header">
             <h2 class="result__title">Link gerado</h2>
-            <p class="result__hint">Você pode copiar e enviar para quem solicitou.</p>
+            <p class="result__hint">Copie e compartilhe com quem solicitou.</p>
           </div>
 
           <div class="result__body">
@@ -62,14 +61,16 @@
 
       <footer class="card__footer">
         <p class="footer-text">
-          Dica: se der erro, o login pode ter expirado no servidor. Nesse caso, atualize o cookie.
+          Se der erro, provavelmente o cookie do Mercado Livre expirou e precisa ser atualizado no Cloudflare.
         </p>
       </footer>
     </section>
   </main>
 
   <script>
-    const API_URL = "https://api.plataformadoti.com.br/create";
+    // Ajuste aqui
+    const API_URL = "https://api.plataformadoti.com.br";
+    const API_KEY = "SUA_API_KEY_AQUI";
 
     const mlLink = document.getElementById("mlLink");
     const btnGerar = document.getElementById("btnGerar");
@@ -87,6 +88,14 @@
     const setLoading = (isLoading) => {
       btnGerar.disabled = isLoading;
       btnGerar.classList.toggle("is-loading", isLoading);
+    };
+
+    // Extrai a URL meli.la do texto retornado pelo Worker
+    const extractMeli = (value) => {
+      if (!value) return null;
+      const text = String(value);
+      const match = text.match(/https?:\/\/meli\.la\/[A-Za-z0-9]+/);
+      return match ? match[0] : null;
     };
 
     btnLimpar.addEventListener("click", () => {
@@ -113,24 +122,36 @@
         setLoading(true);
         setStatus("Gerando link...", "info");
 
-        const response = await fetch(API_URL, {
+        const resp = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": API_KEY
+          },
           body: JSON.stringify({ link })
         });
 
-        const data = await response.json().catch(() => ({}));
+        const data = await resp.json().catch(() => ({}));
 
-        if (!response.ok) {
-          setStatus(data.error || "Erro ao gerar link.", "error");
+        if (!resp.ok) {
+          const msg = data?.error || "Erro ao gerar link.";
+          setStatus(msg, "error");
           return;
         }
 
-        outLink.value = data.link_afiliado;
+        // Seu backend devolve: { link_afiliado: "texto... https://meli.la/xxxx" }
+        const meli = extractMeli(data.link_afiliado);
+        if (!meli) {
+          setStatus("Resposta recebida, mas não encontrei o link meli.la.", "error");
+          return;
+        }
+
+        outLink.value = meli;
         resultBox.style.display = "block";
         setStatus("Link gerado com sucesso.", "success");
+
       } catch (e) {
-        setStatus("Falha ao conectar com o servidor.", "error");
+        setStatus("Falha ao conectar com a API.", "error");
       } finally {
         setLoading(false);
       }
