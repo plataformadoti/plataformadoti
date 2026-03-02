@@ -1,77 +1,92 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma do TI - Em Construção</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Gerador de Link Afiliado</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<section style="max-width:760px;margin:0 auto;padding:24px">
-  <h1>Gerar link afiliado</h1>
-  <p>Cole o link do produto do Mercado Livre e gere o link para compartilhar.</p>
+<body>
 
-  <label for="mlLink">Link do produto</label>
-  <input id="mlLink" type="url" placeholder="Cole aqui..." style="width:100%;padding:12px;margin:8px 0" />
+  <section class="affiliate-container">
+    <h1>Gerar link afiliado</h1>
+    <p class="subtitle">
+      Cole o link do produto do Mercado Livre e gere o link para compartilhar.
+    </p>
 
-  <button id="btnGerar" style="padding:12px 16px">Gerar</button>
+    <label for="mlLink">Link do produto</label>
+    <input
+      id="mlLink"
+      type="url"
+      placeholder="https://www.mercadolivre.com.br/..."
+      required
+    />
 
-  <div id="status" style="margin-top:12px"></div>
+    <button id="btnGerar">Gerar</button>
 
-  <div id="resultBox" style="margin-top:12px;display:none">
-    <label for="outLink">Link gerado</label>
-    <input id="outLink" readonly style="width:100%;padding:12px;margin:8px 0" />
-    <button id="btnCopiar" style="padding:12px 16px">Copiar</button>
-  </div>
-</section>
+    <div id="status" class="status"></div>
 
-<script>
-  const API_URL = "https://api.plataformadoti.com.br/create"; // ajuste para o seu subdomínio
+    <div id="resultBox" class="result-box">
+      <label for="outLink">Link gerado</label>
+      <input id="outLink" readonly />
+      <button id="btnCopiar">Copiar</button>
+    </div>
+  </section>
 
-  const mlLink = document.getElementById("mlLink");
-  const btnGerar = document.getElementById("btnGerar");
-  const status = document.getElementById("status");
-  const resultBox = document.getElementById("resultBox");
-  const outLink = document.getElementById("outLink");
-  const btnCopiar = document.getElementById("btnCopiar");
+  <script>
+    const API_URL = "https://api.plataformadoti.com.br/create";
 
-  btnGerar.addEventListener("click", async () => {
-    const link = (mlLink.value || "").trim();
-    resultBox.style.display = "none";
-    status.textContent = "Gerando...";
+    const mlLink = document.getElementById("mlLink");
+    const btnGerar = document.getElementById("btnGerar");
+    const status = document.getElementById("status");
+    const resultBox = document.getElementById("resultBox");
+    const outLink = document.getElementById("outLink");
+    const btnCopiar = document.getElementById("btnCopiar");
 
-    try {
-      const resp = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ link })
-      });
+    btnGerar.addEventListener("click", async () => {
+      const link = (mlLink.value || "").trim();
 
-      const data = await resp.json().catch(() => ({}));
+      resultBox.style.display = "none";
+      status.textContent = "Gerando...";
 
-      if (!resp.ok) {
-        status.textContent = data.error || "Erro ao gerar link.";
+      if (!link.startsWith("http")) {
+        status.textContent = "Informe um link válido.";
         return;
       }
 
-      outLink.value = data.link_afiliado;
-      resultBox.style.display = "block";
-      status.textContent = "Pronto.";
-    } catch (e) {
-      status.textContent = "Falha de conexão com a API.";
-    }
-  });
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ link })
+        });
 
-  btnCopiar.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(outLink.value);
-      status.textContent = "Copiado.";
-    } catch {
-      outLink.select();
-      document.execCommand("copy");
-      status.textContent = "Copiado.";
-    }
-  });
-</script>
+        const data = await response.json();
+
+        if (!response.ok) {
+          status.textContent = data.error || "Erro ao gerar link.";
+          return;
+        }
+
+        outLink.value = data.link_afiliado;
+        resultBox.style.display = "block";
+        status.textContent = "Link gerado com sucesso.";
+
+      } catch (error) {
+        status.textContent = "Falha ao conectar com o servidor.";
+      }
+    });
+
+    btnCopiar.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(outLink.value);
+        status.textContent = "Link copiado.";
+      } catch {
+        outLink.select();
+        document.execCommand("copy");
+        status.textContent = "Link copiado.";
+      }
+    });
+  </script>
+
+</body>
 </html>
-
