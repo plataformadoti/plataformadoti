@@ -7,49 +7,71 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <div class="content">
-            <div class="logo-container">
-                <img src="logo.png" alt="Plataforma do TI" class="logo">
-            </div>
-            
-            <div class="text-content">
-                <h1 class="main-title">Plataforma do TI</h1>
-                <h2 class="subtitle">Em Construção</h2>
-                
-                <div class="description">
-                    <p>Estamos trabalhando duro para trazer a você uma experiência incrível em tecnologia da informação.</p>
-                    <p>Nossa plataforma estará disponível em breve com soluções inovadoras e suporte especializado.</p>
-                </div>
-                
-                <div class="coming-soon">
-                    <span class="coming-soon-text">Disponível em breve</span>
-                    <div class="loading-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="contact-info">
-                <p>Para mais informações, entre em contato conosco</p>
-                <div class="contact-links">
-                    <a href="mailto:contato@plataformadoti.com.br" class="contact-link">
-                        <span class="icon">✉</span>
-                        contato@plataformadoti.com.br
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="background-elements">
-            <div class="circle circle-1"></div>
-            <div class="circle circle-2"></div>
-            <div class="circle circle-3"></div>
-        </div>
-    </div>
-</body>
+<section style="max-width:760px;margin:0 auto;padding:24px">
+  <h1>Gerar link afiliado</h1>
+  <p>Cole o link do produto do Mercado Livre e gere o link para compartilhar.</p>
+
+  <label for="mlLink">Link do produto</label>
+  <input id="mlLink" type="url" placeholder="Cole aqui..." style="width:100%;padding:12px;margin:8px 0" />
+
+  <button id="btnGerar" style="padding:12px 16px">Gerar</button>
+
+  <div id="status" style="margin-top:12px"></div>
+
+  <div id="resultBox" style="margin-top:12px;display:none">
+    <label for="outLink">Link gerado</label>
+    <input id="outLink" readonly style="width:100%;padding:12px;margin:8px 0" />
+    <button id="btnCopiar" style="padding:12px 16px">Copiar</button>
+  </div>
+</section>
+
+<script>
+  const API_URL = "https://api.plataformadoti.com.br/create"; // ajuste para o seu subdomínio
+
+  const mlLink = document.getElementById("mlLink");
+  const btnGerar = document.getElementById("btnGerar");
+  const status = document.getElementById("status");
+  const resultBox = document.getElementById("resultBox");
+  const outLink = document.getElementById("outLink");
+  const btnCopiar = document.getElementById("btnCopiar");
+
+  btnGerar.addEventListener("click", async () => {
+    const link = (mlLink.value || "").trim();
+    resultBox.style.display = "none";
+    status.textContent = "Gerando...";
+
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link })
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        status.textContent = data.error || "Erro ao gerar link.";
+        return;
+      }
+
+      outLink.value = data.link_afiliado;
+      resultBox.style.display = "block";
+      status.textContent = "Pronto.";
+    } catch (e) {
+      status.textContent = "Falha de conexão com a API.";
+    }
+  });
+
+  btnCopiar.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(outLink.value);
+      status.textContent = "Copiado.";
+    } catch {
+      outLink.select();
+      document.execCommand("copy");
+      status.textContent = "Copiado.";
+    }
+  });
+</script>
 </html>
 
